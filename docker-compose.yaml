@@ -1,0 +1,36 @@
+version: '3.0'
+
+services:
+  mongo:
+    image: mongo
+    volumes:
+    - "./api-gateway/data:/docker-entrypoint-initdb.d"
+  job-service:
+    build: ./job-service
+    image: job-service
+    deploy:
+      replicas: 2
+    depends_on: 
+    - mongo
+    environment:
+      spring.data.mongodb.uri: "mongodb://job_user:password@mongo:27017/job"
+  candidate-service:
+    build: ./candidate-service
+    image: candidate-service
+    deploy:
+      replicas: 2
+    depends_on: 
+    - mongo
+    - job-service
+    environment:
+      spring.data.mongodb.uri: "mongodb://candidate_user:password@mongo:27017/candidate"
+  nginx:
+    image: nginx
+    depends_on:
+      - candidate-service
+      - job-service
+    ports:
+      - "80:80"
+    volumes:
+      - "./api-gateway/conf/nginx.conf:/etc/nginx/nginx.conf"
+      - "./api-gateway/html/index.html:/usr/share/nginx/html/index.html"
